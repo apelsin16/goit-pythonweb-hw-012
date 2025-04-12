@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "contacts-fastapi"
+version = "0.1.0"
+description = "App contacts"
+authors = ["apelsin16"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.12"
+sqlalchemy = "^2.0.40"
+psycopg2-binary = "^2.9.10"
+pydantic = "^2.11.1"
+asyncpg = "^0.30.0"
+alembic = "^1.15.2"
+uvicorn = "^0.34.0"
+python-jose = {extras = ["cryptography"], version = "^3.4.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+libgravatar = "^1.0.4"
+python-multipart = "^0.0.20"
+bcrypt = "4.0.1"
+pydantic-settings = "^2.8.1"
+slowapi = "^0.1.9"
+fastapi-mail = "^1.4.2"
+cloudinary = "^1.43.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
