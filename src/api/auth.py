@@ -1,11 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request, Form
 from fastapi.security import OAuth2PasswordRequestForm
-from src.schemas import UserCreate, Token, User, RequestEmail
-from src.services.auth import create_access_token, Hash, get_email_from_token
-from src.services.users import UserService
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
+
 from src.database.db import get_db
-from src.services.mail import send_email
+from src.schemas import UserCreate, Token, User, RequestEmail
+from src.services.auth import create_access_token, get_email_from_token, create_reset_token, decode_reset_token
+from src.services.hash import Hash
+from src.services.mail import send_email, send_reset_password_email
+from src.services.users import UserService
+
+from fastapi.templating import Jinja2Templates
+
+templates = Jinja2Templates(directory="src/services/templates")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -64,6 +71,7 @@ async def login_user(
     access_token = await create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
+
 @router.get("/confirmed_email/{token}")
 async def confirmed_email(token: str, db: Session = Depends(get_db)):
     email = await get_email_from_token(token)
@@ -78,12 +86,13 @@ async def confirmed_email(token: str, db: Session = Depends(get_db)):
     await user_service.confirmed_email(email)
     return {"message": "Електронну пошту підтверджено"}
 
+
 @router.post("/request_email")
 async def request_email(
-    body: RequestEmail,
-    background_tasks: BackgroundTasks,
-    request: Request,
-    db: Session = Depends(get_db),
+        body: RequestEmail,
+        background_tasks: BackgroundTasks,
+        request: Request,
+        db: Session = Depends(get_db),
 ):
     user_service = UserService(db)
     user = await user_service.get_user_by_email(body.email)
@@ -95,3 +104,51 @@ async def request_email(
             send_email, user.email, user.username, request.base_url
         )
     return {"message": "Перевірте свою електронну пошту для підтвердження"}
+
+
+@router.post("/send-reset-password-token")
+async def send_reset_password_token(
+        body: RequestEmail,
+        background_tasks: BackgroundTasks,
+        request: Request,
+        db: Session = Depends(get_db),
+):
+    user_service = UserService(db)
+    user = await user_service.get_user_by_email(body.email)
+
+    if user is None:
+        raise HTTPException(status_code=404, detail="Користувача з таким email не знайдено")
+
+    background_tasks.add_task(
+        send_reset_password_email, user.email, user.username, str(request.base_url)
+    )
+    return {"message": "Посилання для скидання пароля було надіслано на вашу електронну пошту"}
+
+
+@router.get("/reset-password")
+async def reset_password_form(request: Request, token: str):
+    try:
+        # Перевірка токену
+        email = decode_reset_token(token)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+
+    # Повертаємо форму для скидання пароля
+    return templates.TemplateResponse("reset_password_form.html", {"request": request, "token": token})
+
+
+@router.post("/reset-password")
+async def reset_password(
+        token: str = Form(...),
+        new_password: str = Form(...),
+        db: AsyncSession = Depends(get_db),
+):
+    try:
+        email = decode_reset_token(token)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+
+    user_service = UserService(db)
+    hashed_password = Hash().get_password_hash(new_password)
+    await user_service.update_password(email, hashed_password)
+    return {"msg": "Password updated successfully"}

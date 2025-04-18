@@ -1,7 +1,8 @@
+import enum
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import String, Date, Integer, Column, DateTime, func, ForeignKey, Boolean
+from sqlalchemy import String, Date, Integer, Column, DateTime, func, ForeignKey, Boolean, Enum
 from sqlalchemy.orm import declarative_base, Mapped, mapped_column, relationship
 
 Base = declarative_base()
@@ -19,6 +20,10 @@ class Contact(Base):
     user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     user = relationship('User', backref="contacts")
 
+class UserRole(enum.Enum):
+    USER = "USER"
+    ADMIN = "ADMIN"
+
 class User(Base):
     __tablename__ = 'users'
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -28,3 +33,4 @@ class User(Base):
     created_at = Column(DateTime, default=func.now())
     avatar: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     confirmed = Column(Boolean, default=False)
+    role = Column(Enum(UserRole, name="userrole", native_enum=True), default=UserRole.USER)

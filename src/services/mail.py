@@ -39,3 +39,30 @@ async def send_email(email: EmailStr, username: str, host: str):
         await fm.send_message(message, template_name="verify_email.html")
     except ConnectionErrors as err:
         print(err)
+
+
+async def send_reset_password_email(email: EmailStr, username: str, host: str):
+    try:
+        # Створюємо токен для скидання пароля
+        token = create_email_token({"sub": email})
+
+        # Формуємо лінк для скидання пароля
+        reset_link = f"{host}api/auth/reset-password?token={token}"
+
+        # Створюємо повідомлення для відправки
+        message = MessageSchema(
+            subject="Скидання пароля",
+            recipients=[email],
+            template_body={
+                "host": host,
+                "username": username,
+                "reset_link": reset_link,  # Передаємо правильний лінк для скидання пароля
+            },
+            subtype=MessageType.html,
+        )
+
+        # Відправляємо email
+        fm = FastMail(conf)
+        await fm.send_message(message, template_name="reset_password.html")
+    except ConnectionErrors as err:
+        print(f"Error sending email: {err}")

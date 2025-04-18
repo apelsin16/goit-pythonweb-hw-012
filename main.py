@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, Depends
 from starlette.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi import Limiter
@@ -6,6 +6,8 @@ from slowapi.util import get_remote_address
 from slowapi.middleware import SlowAPIMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from src.api import contacts, auth, users
+from src.schemas import User
+from src.services.auth import get_current_admin_user
 
 origins = [
     "<http://localhost:3000>"
@@ -45,6 +47,11 @@ app.include_router(users.router, prefix="/api")
 @app.get("/")
 async def root():
     return {"message": "Welcome to the Contact API!"}
+
+@app.get("/admin")
+def read_admin(current_user: User = Depends(get_current_admin_user)):
+    return {"message": f"Вітаємо, {current_user.username}! Це адміністративний маршрут"}
+
 
 
 if __name__ == "__main__":

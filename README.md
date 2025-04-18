@@ -1,0 +1,2 @@
+# Запустити тести 
+ PYTHONPATH=. pytest

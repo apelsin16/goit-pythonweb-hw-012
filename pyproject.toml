@@ -23,8 +23,23 @@ pydantic-settings = "^2.8.1"
 slowapi = "^0.1.9"
 fastapi-mail = "^1.4.2"
 cloudinary = "^1.43.0"
+pytest = "^8.3.5"
+aiosqlite = "^0.21.0"
+redis = "^5.2.1"
+redis-lru = "^0.1.2"
 
+
+[tool.poetry.group.dev.dependencies]
+sphinx = "^8.2.3"
+pytest-asyncio = "^0.26.0"
+httpx = "^0.28.1"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+addopts = "--cov=src --cov-report=term-missing"
+markers = [
+    "asyncio: mark test to be run with pytest-asyncio"
+]
